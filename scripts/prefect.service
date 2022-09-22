@@ -1,0 +1,12 @@
+[Unit]
+Description="Prefect Orion API/UI"
+
+[Service]
+Type=simple
+User=prefect
+WorkingDirectory=/home/prefect
+ExecStart=prefect orion start
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
