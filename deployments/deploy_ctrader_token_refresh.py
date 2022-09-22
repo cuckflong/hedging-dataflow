@@ -1,4 +1,3 @@
-from time import timezone
 from prefect.deployments import Deployment
 from prefect.filesystems import RemoteFileSystem
 from prefect.orion.schemas.schedules import CronSchedule
