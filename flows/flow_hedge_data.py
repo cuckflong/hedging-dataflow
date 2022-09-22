@@ -66,10 +66,11 @@ def write_data_to_db(
     logger.info("Writing data to db")
 
     database = Secret.load("prefect-psql-database").get()
+    host = Secret.load("prefect-psql-host").get()
     user = Secret.load("prefect-psql-user").get()
     password = Secret.load("prefect-psql-password").get()
     conn = psycopg2.connect(
-        host="127.0.0.1",
+        host=host,
         database=database,
         user=user,
         password=password,
