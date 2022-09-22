@@ -1,0 +1,15 @@
+secrets_list = [
+    "ctrader-account-id",
+    "ctrader-access-token",
+    "ctrader-refresh-token",
+    "ctrader-client-id",
+    "ctrader-client-secret",
+    "ftx-api-key",
+    "ftx-api-secret",
+    "prefect-psql-database",
+    "prefect-psql-host",
+    "prefect-psql-user",
+    "prefect-psql-password",
+    "vultr-access-key",
+    "vultr-access-secret",
+]

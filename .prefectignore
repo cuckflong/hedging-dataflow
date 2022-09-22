@@ -1,0 +1,18 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+.editorconfig
+.gitingore
+
+requirements.txt
+setup.py
+
+blocks/
+deployments/
+
+secrets.json
+string.json
+
+README.md
