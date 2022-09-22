@@ -5,7 +5,7 @@ Description="Prefect Orion API/UI"
 Type=simple
 User=prefect
 WorkingDirectory=/home/prefect
-ExecStart=prefect orion start
+ExecStart=bash ./hedging-dataflow/scripts/start_prefect.sh
 Restart=always
 
 [Install]

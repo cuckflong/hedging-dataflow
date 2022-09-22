@@ -1,4 +1,4 @@
 #!/bin/sh
 
-conda activate prefect
+$HOME/miniconda3/bin/activate prefect
 prefect orion start
