@@ -12,6 +12,7 @@ setup.py
 
 blocks/
 deployments/
+scripts/
 
 secrets.json
 string.json
