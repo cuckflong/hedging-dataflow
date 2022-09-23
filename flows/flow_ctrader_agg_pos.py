@@ -91,7 +91,7 @@ def ctrader_get_positions_data():
     def parse_positions(positions):
         total_dot_size = 0
         total_swap = 0
-        total_position_size = 0
+        entry_position_size = 0
         avg_entry_price = 0
         for position in positions.position:
             if position.tradeData.symbolId != int(symbol_id):
@@ -104,25 +104,25 @@ def ctrader_get_positions_data():
 
             total_dot_size += volume
             total_swap += swap
-            total_position_size -= positionSize
-        avg_entry_price = abs(total_position_size) / total_dot_size
+            entry_position_size -= positionSize
+        avg_entry_price = abs(entry_position_size) / total_dot_size
         avg_entry_price = round(avg_entry_price, 5)
         total_swap = round(total_swap, 5)
         total_dot_size = round(total_dot_size, 5)
-        total_position_size = round(total_position_size, 5)
+        entry_position_size = round(entry_position_size, 5)
         logger.info(f"cTrader - Total Dot Size: {total_dot_size}")
         logger.info(f"cTrader - Total Swap: {total_swap}")
-        logger.info(f"cTrader - Total Position Size: {total_position_size}")
+        logger.info(f"cTrader - Entry Position Size: {entry_position_size}")
         logger.info(f"cTrader - Average Entry Price: {avg_entry_price}")
         update_prefect_block_data(
             avg_entry_price=avg_entry_price,
             total_swap=total_swap,
             total_dot_size=total_dot_size,
-            total_position_size=total_position_size,
+            entry_position_size=entry_position_size,
         )
 
     def update_prefect_block_data(
-        avg_entry_price, total_dot_size, total_swap, total_position_size
+        avg_entry_price, total_dot_size, total_swap, entry_position_size
     ):
         logger.info("cTrader - Updating Prefect Block Data")
         String(value=avg_entry_price).save(
@@ -130,8 +130,8 @@ def ctrader_get_positions_data():
         )
         String(value=total_dot_size).save("ctrader-last-total-dot-size", overwrite=True)
         String(value=total_swap).save("ctrader-last-total-swap", overwrite=True)
-        String(value=total_position_size).save(
-            "ctrader-last-total-position-size", overwrite=True
+        String(value=entry_position_size).save(
+            "ctrader-last-entry-position-size", overwrite=True
         )
 
     # Setting optional client callbacks

@@ -26,9 +26,11 @@ def ftx_dot_cost_flow():
             size = order["filledSize"]
             total_cost += avg_price * size
             total_size += size
+    avg_cost = round(total_cost / total_size, 5)
     logger.info(f"FTX - Total cost (USD): {total_cost}")
     logger.info(f"FTX - Total size (DOT): {total_size}")
-    return total_cost, total_size
+    logger.info(f"FTX - Average cost (USD): {avg_cost}")
+    return total_cost, total_size, avg_cost
 
 
 if __name__ == "__main__":

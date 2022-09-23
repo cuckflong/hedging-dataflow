@@ -5,6 +5,7 @@ strings_list = [
     "ctrader-last-total-position-size",
     "ctrader-last-total-swap",
     "dot-address",
+    "dot-rpc-url",
     "ftx-account",
     "vultr-s3-url",
 ]

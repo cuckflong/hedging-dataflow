@@ -5,7 +5,8 @@ from substrateinterface import SubstrateInterface
 
 @task
 def get_total_balance(address: str):
-    substrate = SubstrateInterface(url="wss://rpc.polkadot.io")
+    url = String.load("dot-rpc-url").value
+    substrate = SubstrateInterface(url=url)
     result = substrate.query(
         module="System",
         storage_function="Account",
@@ -18,7 +19,8 @@ def get_total_balance(address: str):
 
 @task
 def get_staked_balance(address: str):
-    substrate = SubstrateInterface(url="wss://rpc.polkadot.io")
+    url = String.load("dot-rpc-url").value
+    substrate = SubstrateInterface(url=url)
     result = substrate.query(
         module="Staking",
         storage_function="Ledger",
