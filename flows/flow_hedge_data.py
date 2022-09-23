@@ -164,21 +164,24 @@ def hedge_data_flow():
     )
     ctrader_avg_entry_price = float(String.load("ctrader-last-avg-entry-price").value)
 
-    ctrader_pnl = (
+    ctrader_pnl = round(
         calc_position_diff(
             dot_market_price, ctrader_total_dot_size, ctrader_avg_entry_price
         )
-        * -1
+        * -1,
+        5,
     )
 
     ctrader_net_position_size = ctrader_entry_position_size + ctrader_pnl
 
-    ftx_pnl = calc_position_diff(dot_market_price, ftx_total_size, ftx_avg_cost)
+    ftx_pnl = round(
+        calc_position_diff(dot_market_price, ftx_total_size, ftx_avg_cost), 5
+    )
 
     ftx_net_position_size = ftx_total_cost + ftx_pnl
 
-    dot_fee_unit = ftx_total_size - dot_total_balance
-    dot_fee_usd = dot_fee_unit * dot_market_price
+    dot_fee_unit = round(ftx_total_size - dot_total_balance, 5)
+    dot_fee_usd = round(dot_fee_unit * dot_market_price, 5)
 
     logger.info(f"FTX - Total cost (USD): {ftx_total_cost}")
     logger.info(f"FTX - Total size (DOT): {ftx_total_size}")
