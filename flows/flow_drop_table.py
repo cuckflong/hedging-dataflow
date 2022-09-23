@@ -1,7 +1,6 @@
-from prefect import flow, task, get_run_logger
-from prefect.blocks.system import Secret
-
 import psycopg2
+from prefect import flow, get_run_logger, task
+from prefect.blocks.system import Secret
 
 
 @task

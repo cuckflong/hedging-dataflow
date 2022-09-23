@@ -1,5 +1,5 @@
-from prefect.filesystems import RemoteFileSystem
 from prefect.blocks.system import Secret, String
+from prefect.filesystems import RemoteFileSystem
 
 
 def main():

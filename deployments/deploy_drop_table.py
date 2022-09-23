@@ -1,6 +1,5 @@
 from prefect.deployments import Deployment
 from prefect.filesystems import RemoteFileSystem
-from prefect.orion.schemas.schedules import CronSchedule
 
 from flows.flow_drop_table import drop_table_flow
 

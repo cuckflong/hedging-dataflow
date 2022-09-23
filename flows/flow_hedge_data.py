@@ -1,13 +1,13 @@
 import time
-from prefect import flow, task, get_run_logger
-from prefect.blocks.system import String, Secret
 
 import psycopg2
+from prefect import flow, get_run_logger, task
+from prefect.blocks.system import Secret, String
 
+from .flow_ctrader_agg_pos import ctrader_get_positions_data
 from .flow_ftx_dot_cost import ftx_dot_cost_flow
 from .flow_ftx_dot_market_price import ftx_dot_market_price_flow
 from .flow_ledger_dot_balance import dot_balance_flow
-from .flow_ctrader_agg_pos import ctrader_get_positions_data
 
 
 @task
