@@ -2,18 +2,18 @@ from prefect.deployments import Deployment
 from prefect.filesystems import RemoteFileSystem
 from prefect.orion.schemas.schedules import CronSchedule
 
-from flows.flow_ctrader_token_refresh import ctrader_token_refresh
+from flows.flow_all_data import collect_all_data_flow
 
 
 def main():
     remote_file_system_block = RemoteFileSystem.load("storage-hedge-pnl")
     deployment = Deployment.build_from_flow(
-        flow=ctrader_token_refresh,
-        name="cTrader Weekly Token Refresh Deployment",
+        flow=collect_all_data_flow,
+        name="Collect All Hedge Data Deployment",
         work_queue_name="staking-pnl-env",
         storage=remote_file_system_block,
-        # every week on Saturday at 23:50 HKT
-        schedule=(CronSchedule(cron="50 23 * * 6", timezone="Asia/Hong_Kong")),
+        # every day at 00:00, 06:00, 12:00, 18:00 HKT
+        schedule=(CronSchedule(cron="0 */6 * * *", timezone="Asia/Hong_Kong")),
     )
     deployment.apply()
 

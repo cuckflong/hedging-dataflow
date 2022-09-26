@@ -74,5 +74,12 @@ class FtxClient:
             },
         )
 
+    def get_withdrawals(
+        self, start_time: float = None, end_time: float = None
+    ) -> List[dict]:
+        return self._get(
+            "wallet/withdrawals", {"start_time": start_time, "end_time": end_time}
+        )
+
     def get_subaccount_balances(self, nickname: str) -> List[dict]:
         return self._get(f"subaccounts/{nickname}/balances")

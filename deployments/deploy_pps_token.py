@@ -2,18 +2,18 @@ from prefect.deployments import Deployment
 from prefect.filesystems import RemoteFileSystem
 from prefect.orion.schemas.schedules import CronSchedule
 
-from flows.flow_hedge_data import hedge_data_flow
+from flows.flow_pps_data import pps_token_refresh
 
 
 def main():
     remote_file_system_block = RemoteFileSystem.load("storage-hedge-pnl")
     deployment = Deployment.build_from_flow(
-        flow=hedge_data_flow,
-        name="Hedging Data Update Deployment",
+        flow=pps_token_refresh,
+        name="Refresh PPS Access Token Deployment",
         work_queue_name="staking-pnl-env",
         storage=remote_file_system_block,
-        # every day at 00:00, 06:00, 12:00, 18:00 HKT
-        schedule=(CronSchedule(cron="0 */6 * * *", timezone="Asia/Hong_Kong")),
+        # every week on Saturday at 23:50 HKT
+        schedule=(CronSchedule(cron="50 23 * * 6", timezone="Asia/Hong_Kong")),
     )
     deployment.apply()
 
