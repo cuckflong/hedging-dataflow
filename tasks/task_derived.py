@@ -49,9 +49,7 @@ def calc_pps_liq_value(
 
     position_entry_value = pps_avg_entry_price * pps_total_dot_size
 
-    unrealised_pnl = -1 * pps_position_pnl
-
-    pps_liq_value = position_entry_value + unrealised_pnl
+    pps_liq_value = position_entry_value + pps_position_pnl
 
     return pps_liq_value
 
