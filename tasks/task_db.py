@@ -236,7 +236,7 @@ def write_derived_data_to_db(
 
 
 @task
-def get_last_total_liq_value():
+def get_last_total_liq_value() -> float:
     logger = get_run_logger()
 
     logger.info("Getting last total liq value")
@@ -261,7 +261,7 @@ def get_last_total_liq_value():
     if len(results) == 0:
         last_total_liq_value = 0
     else:
-        last_total_liq_value = results[0][0]
+        last_total_liq_value = float(results[0][0])
 
     cur.close()
     conn.close()
