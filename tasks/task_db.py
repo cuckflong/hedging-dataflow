@@ -261,7 +261,7 @@ def get_last_total_liq_value():
     if len(results) == 0:
         last_total_liq_value = 0
     else:
-        last_total_liq_value = results[0]
+        last_total_liq_value = results[0][0]
 
     cur.close()
     conn.close()
