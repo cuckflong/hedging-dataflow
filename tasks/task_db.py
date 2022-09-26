@@ -98,6 +98,7 @@ def create_derived_data_table():
             dot_net_position DECIMAL,
             usd_net_position DECIMAL,
             dot_fees DECIMAL,
+            total_interest DECIMAL,
             pnl DECIMAL
         );
     """
@@ -184,6 +185,7 @@ def write_derived_data_to_db(
     dot_net_position: float,
     usd_net_position: float,
     dot_fees: float,
+    total_interest: float,
     pnl: float,
 ):
     logger = get_run_logger()
@@ -213,8 +215,9 @@ def write_derived_data_to_db(
             dot_net_position,
             usd_net_position,
             dot_fees,
+            total_interest,
             pnl
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
     """,
         (
             unix_time,
@@ -226,6 +229,7 @@ def write_derived_data_to_db(
             dot_net_position,
             usd_net_position,
             dot_fees,
+            total_interest,
             pnl,
         ),
     )

@@ -95,7 +95,7 @@ def collect_all_data_flow(dry_run: bool = False):
     else:
         pnl = total_liq_value - prev_total_liq_value
 
-    total_interests = dot_total_rewards + pps_total_swap
+    total_interest = dot_total_rewards + pps_total_swap
 
     logger.info(f"PPS position PnL: {pps_position_pnl}")
     logger.info(f"FTX position PnL: {ftx_position_pnl}")
@@ -106,7 +106,7 @@ def collect_all_data_flow(dry_run: bool = False):
     logger.info(f"DOT net position: {dot_net_position}")
     logger.info(f"USD net position: {usd_net_position}")
     logger.info(f"Total PnL: {pnl}")
-    logger.info(f"Total interests: {total_interests}")
+    logger.info(f"Total interests: {total_interest}")
 
     logger.info("Calculating derived data complete")
 
@@ -137,6 +137,7 @@ def collect_all_data_flow(dry_run: bool = False):
         dot_net_position,
         usd_net_position,
         dot_fees,
+        total_interest,
         pnl,
     )
 
