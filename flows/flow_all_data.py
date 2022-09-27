@@ -8,6 +8,7 @@ from flows.flow_pps_data import collect_pps_raw_data_flow
 from tasks.task_db import (
     create_derived_data_table,
     create_raw_data_table,
+    get_last_total_interest_value,
     get_last_total_liq_value,
     write_derived_data_to_db,
     write_raw_data_to_db,
@@ -89,12 +90,21 @@ def collect_all_data_flow(dry_run: bool = False):
 
     prev_total_liq_value = get_last_total_liq_value()
 
-    if prev_total_liq_value == 0:
-        pnl = 0.0
-    else:
-        pnl = total_liq_value - prev_total_liq_value
+    prev_total_interest = get_last_total_interest_value()
 
     total_interest = dot_total_rewards * dot_market_price + pps_total_swap
+
+    if prev_total_interest == 0:
+        interest_pnl = 0.0
+    else:
+        interest_pnl = total_interest - prev_total_interest
+
+    if prev_total_liq_value == 0:
+        position_pnl = 0.0
+    else:
+        position_pnl = total_liq_value - prev_total_liq_value
+
+    total_pnl = position_pnl + interest_pnl
 
     logger.info(f"PPS position PnL: {pps_position_pnl}")
     logger.info(f"FTX position PnL: {ftx_position_pnl}")
@@ -104,7 +114,9 @@ def collect_all_data_flow(dry_run: bool = False):
     logger.info(f"Total liquidation value: {total_liq_value}")
     logger.info(f"DOT net position: {dot_net_position}")
     logger.info(f"USD net position: {usd_net_position}")
-    logger.info(f"Total PnL: {pnl}")
+    logger.info(f"Interest PnL: {interest_pnl}")
+    logger.info(f"Position PnL: {position_pnl}")
+    logger.info(f"Total PnL: {total_pnl}")
     logger.info(f"Total interests: {total_interest}")
 
     logger.info("Calculating derived data complete")
@@ -138,7 +150,9 @@ def collect_all_data_flow(dry_run: bool = False):
         usd_net_position,
         dot_fees,
         total_interest,
-        pnl,
+        interest_pnl,
+        position_pnl,
+        total_pnl,
     )
 
 

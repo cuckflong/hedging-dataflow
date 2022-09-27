@@ -105,7 +105,9 @@ def create_derived_data_table():
             usd_net_position DECIMAL,
             dot_fees DECIMAL,
             total_interest DECIMAL,
-            pnl DECIMAL
+            interest_pnl DECIMAL,
+            position_pnl DECIMAL,
+            total_pnl DECIMAL
         );
     """
     )
@@ -195,7 +197,9 @@ def write_derived_data_to_db(
     usd_net_position: float,
     dot_fees: float,
     total_interest: float,
-    pnl: float,
+    interest_pnl: float,
+    position_pnl: float,
+    total_pnl: float,
 ):
     logger = get_run_logger()
 
@@ -225,8 +229,10 @@ def write_derived_data_to_db(
             usd_net_position,
             dot_fees,
             total_interest,
-            pnl
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+            interest_pnl,
+            position_pnl,
+            total_pnl
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
     """,
         (
             unix_time,
@@ -239,7 +245,9 @@ def write_derived_data_to_db(
             usd_net_position,
             dot_fees,
             total_interest,
-            pnl,
+            interest_pnl,
+            position_pnl,
+            total_pnl,
         ),
     )
     conn.commit()
@@ -279,3 +287,36 @@ def get_last_total_liq_value() -> float:
     cur.close()
     conn.close()
     return last_total_liq_value
+
+
+@task
+def get_last_total_interest_value() -> float:
+    logger = get_run_logger()
+
+    logger.info("Getting last total interest value")
+
+    database = Secret.load("prefect-psql-database").get()
+    host = Secret.load("prefect-psql-host").get()
+    user = Secret.load("prefect-psql-user").get()
+    password = Secret.load("prefect-psql-password").get()
+    conn = psycopg2.connect(
+        host=host,
+        database=database,
+        user=user,
+        password=password,
+    )
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT total_interest FROM hedge_data_derived ORDER BY unix_time DESC LIMIT 1;
+        """
+    )
+    results = cur.fetchall()
+    if len(results) == 0:
+        last_total_interest = 0
+    else:
+        last_total_interest = float(results[0][0])
+
+    cur.close()
+    conn.close()
+    return last_total_interest
