@@ -90,7 +90,7 @@ def collect_all_data_flow(dry_run: bool = False):
     prev_total_liq_value = get_last_total_liq_value()
 
     if prev_total_liq_value == 0:
-        pnl = 0
+        pnl = 0.0
     else:
         pnl = total_liq_value - prev_total_liq_value
 
