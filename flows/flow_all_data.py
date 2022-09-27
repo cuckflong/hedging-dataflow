@@ -52,7 +52,7 @@ def collect_all_data_flow(dry_run: bool = False):
         pps_avg_entry_price,
     ) = collect_pps_raw_data_flow()
 
-    logger.info(f"FTX total size (USD): {ftx_total_size}")
+    logger.info(f"FTX total size (DOT): {ftx_total_size}")
     logger.info(f"FTX avg cost (USD): {ftx_avg_cost}")
     logger.info(f"FTX withdrawal amount (DOT): {ftx_withdrawal_amount}")
     logger.info(f"DOT market price (USD): {dot_market_price}")
