@@ -1,6 +1,7 @@
 import psycopg2
 from prefect import get_run_logger, task
 from prefect.blocks.system import Secret
+from psycopg2 import sql
 
 
 @task
@@ -20,7 +21,11 @@ def drop_table(table_name: str):
         password=password,
     )
     cur = conn.cursor()
-    cur.execute("""DROP TABLE IF EXISTS %s;""", table_name)
+    cur.execute(
+        sql.SQL("DROP TABLE IF EXISTS {table_name}").format(
+            table_name=sql.Identifier(table_name)
+        )
+    )
 
     conn.commit()
     cur.close()

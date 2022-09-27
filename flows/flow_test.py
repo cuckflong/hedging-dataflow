@@ -1,12 +1,11 @@
 from prefect import flow
 
-from tasks.task_ftx import ftx_get_invested_amount
-from tasks.task_pps import pps_get_account_balance
+from tasks.task_db import drop_table
 
 
 @flow
 def flow_test():
-    pps_get_account_balance()
+    drop_table("hedge_data_raw")
 
 
 if __name__ == "__main__":
