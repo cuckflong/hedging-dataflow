@@ -1,7 +1,7 @@
 from prefect import flow, get_run_logger
 from prefect.blocks.system import String
 
-from tasks.task_pps import pps_get_all_data
+from tasks.task_pps import pps_get_all_data, pps_token_refresh
 
 
 @flow(name="Collect PPS raw data")
@@ -19,7 +19,7 @@ def collect_pps_raw_data_flow():
 
 
 @flow(name="Refresh PPS token")
-def pps_token_refresh():
+def pps_token_refresh_flow():
     logger = get_run_logger()
     logger.info("Refreshing PPS token")
     pps_token_refresh()
