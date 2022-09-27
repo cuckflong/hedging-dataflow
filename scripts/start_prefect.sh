@@ -1,7 +1,7 @@
 #!/bin/sh
 
-source $HOME/miniconda3/etc/profile.d/conda.sh
-conda activate prefect
+poetry shell
+poetry install
 
 prefect config set PREFECT_API_URL=https://prefect.cuckflong.io/api
 prefect orion start

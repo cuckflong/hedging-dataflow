@@ -4,8 +4,8 @@ Description="Prefect Hedge Data Agent"
 [Service]
 Type=simple
 User=prefect
-WorkingDirectory=/home/prefect
-ExecStart=bash ./hedging-dataflow/scripts/start_hedge_agent.sh
+WorkingDirectory=/home/prefect/hedging-dataflow
+ExecStart=bash ./scripts/start_hedge_agent.sh
 Restart=always
 
 [Install]
