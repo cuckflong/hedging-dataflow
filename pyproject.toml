@@ -4,7 +4,7 @@ version = "0.1.0"
 description = ""
 authors = ["cuckflong <johnathanclong13@gmail.com>"]
 readme = "README.md"
-packages = [{include = "hedging_dataflow"}]
+packages = []
 
 [tool.poetry.dependencies]
 python = "^3.8"
