@@ -10,15 +10,17 @@ from ctrader_open_api.messages.OpenApiMessages_pb2 import (
     ProtoOAReconcileRes,
     ProtoOARefreshTokenReq,
     ProtoOARefreshTokenRes,
+    ProtoOATraderReq,
+    ProtoOATraderRes,
 )
-from ctrader_open_api.messages.OpenApiModelMessages_pb2 import *
+from ctrader_open_api.messages.OpenApiModelMessages_pb2 import ProtoOAPositionStatus
 from prefect import get_run_logger, task
 from prefect.blocks.system import Secret, String
 from twisted.internet import reactor
 
 
-@task(name="PPS Aggregate Positions Task")
-def pps_get_positions_data():
+@task(name="PPS Get Data Task")
+def pps_get_all_data():
     logger = get_run_logger()
 
     hostType = "live"
@@ -63,6 +65,10 @@ def pps_get_positions_data():
         elif message.payloadType == ProtoOAReconcileRes().payloadType:
             positions = Protobuf.extract(message)
             parse_positions(positions)
+            reactor.callLater(3, callable=send_ProtoOATraderReq)
+        elif message.payloadType == ProtoOATraderRes().payloadType:
+            trader_data = Protobuf.extract(message)
+            get_account_balance(trader_data)
             clean_exit()
         else:
             return
@@ -84,11 +90,23 @@ def pps_get_positions_data():
         deferred = client.send(request, clientMsgId=clientMsgId)
         deferred.addErrback(on_error)
 
+    def send_ProtoOATraderReq(clientMsgId=None):
+        request = ProtoOATraderReq()
+        request.ctidTraderAccountId = account_id
+        deferred = client.send(request, clientMsgId=clientMsgId)
+        deferred.addErrback(on_error)
+
     def clean_exit():
         logger.info("cTrader - Exiting")
         reactor.removeAll()
         reactor.iterate()
         reactor.stop()
+
+    def get_account_balance(trader_data):
+        moneyDigits = trader_data.trader.moneyDigits
+        pps_account_balance = trader_data.trader.balance / 10**moneyDigits
+        logger.info(f"PPS Account Balance: {pps_account_balance}")
+        String(value=pps_account_balance).save("pps-last-acct-balance", overwrite=True)
 
     def parse_positions(positions):
         total_dot_size = 0
@@ -96,7 +114,10 @@ def pps_get_positions_data():
         entry_position_size = 0
         avg_entry_price = 0
         for position in positions.position:
-            if position.tradeData.symbolId != int(symbol_id):
+            if (
+                position.tradeData.symbolId != int(symbol_id)
+                or position.positionStatus != ProtoOAPositionStatus.POSITION_STATUS_OPEN
+            ):
                 continue
             moneyDigits = position.moneyDigits
             volume = position.tradeData.volume / 10**moneyDigits
@@ -114,14 +135,6 @@ def pps_get_positions_data():
         logger.info(f"PPS - Total Swap: {total_swap}")
         logger.info(f"PPS - Average Entry Price: {avg_entry_price}")
 
-        update_prefect_block_data(
-            avg_entry_price=avg_entry_price,
-            total_swap=total_swap,
-            total_dot_size=total_dot_size,
-        )
-
-    def update_prefect_block_data(avg_entry_price, total_dot_size, total_swap):
-        logger.info("PPS - Updating Prefect Block Data")
         String(value=avg_entry_price).save("pps-last-avg-entry-price", overwrite=True)
         String(value=total_dot_size).save("pps-last-total-dot-size", overwrite=True)
         String(value=total_swap).save("pps-last-total-swap", overwrite=True)

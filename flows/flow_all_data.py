@@ -17,7 +17,6 @@ from tasks.task_derived import (
     calc_dot_liq_value,
     calc_dot_net_position,
     calc_ftx_position_pnl,
-    calc_pps_liq_value,
     calc_pps_position_pnl,
 )
 
@@ -46,6 +45,7 @@ def collect_all_data_flow(dry_run: bool = False):
     ) = collect_dot_raw_data_flow()
 
     (
+        pps_acct_balance,
         pps_total_dot_size,
         pps_total_swap,
         pps_avg_entry_price,
@@ -58,6 +58,7 @@ def collect_all_data_flow(dry_run: bool = False):
     logger.info(f"DOT total balance: {dot_total_balance}")
     logger.info(f"DOT staked balance: {dot_staked_balance}")
     logger.info(f"DOT total rewards: {dot_total_rewards}")
+    logger.info(f"PPS account balance: {pps_acct_balance}")
     logger.info(f"PPS total DOT size: {pps_total_dot_size}")
     logger.info(f"PPS total swap: {pps_total_swap}")
     logger.info(f"PPS avg entry price: {pps_avg_entry_price}")
@@ -76,9 +77,7 @@ def collect_all_data_flow(dry_run: bool = False):
 
     dot_fees = calc_dot_fees(dot_total_balance, ftx_total_size, dot_total_rewards)
 
-    pps_liq_value = calc_pps_liq_value(
-        pps_avg_entry_price, pps_total_dot_size, pps_position_pnl
-    )
+    pps_liq_value = pps_acct_balance + pps_position_pnl
 
     dot_liq_value = calc_dot_liq_value(dot_market_price, dot_total_balance)
 
@@ -95,7 +94,7 @@ def collect_all_data_flow(dry_run: bool = False):
     else:
         pnl = total_liq_value - prev_total_liq_value
 
-    total_interest = dot_total_rewards + pps_total_swap
+    total_interest = dot_total_rewards * dot_market_price + pps_total_swap
 
     logger.info(f"PPS position PnL: {pps_position_pnl}")
     logger.info(f"FTX position PnL: {ftx_position_pnl}")
@@ -122,6 +121,7 @@ def collect_all_data_flow(dry_run: bool = False):
         dot_total_balance,
         dot_staked_balance,
         dot_total_rewards,
+        pps_acct_balance,
         pps_total_dot_size,
         pps_total_swap,
         pps_avg_entry_price,

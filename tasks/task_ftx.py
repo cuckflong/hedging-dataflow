@@ -78,3 +78,23 @@ def ftx_get_dot_withdrawn():
     logger.info(f"FTX - DOT Withdrawn: {total_withdrawn}")
 
     return total_withdrawn
+
+
+@task
+def ftx_get_invested_amount():
+    logger = get_run_logger()
+    logger.info("FTX - Getting invested amount")
+
+    api_key = Secret.load("ftx-api-key").get()
+    api_secret = Secret.load("ftx-api-secret").get()
+    subaccount_name = String.load("ftx-account").value
+    ftx = FtxClient(
+        api_key=api_key, api_secret=api_secret, subaccount_name=subaccount_name
+    )
+    deposits = ftx.get_deposit_history()
+
+    total_invested = 0
+    for deposit in deposits:
+        print(deposit)
+
+    return total_invested

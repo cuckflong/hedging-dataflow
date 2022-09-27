@@ -56,6 +56,7 @@ def create_raw_data_table():
             dot_total_balance DECIMAL,
             dot_staked_balance DECIMAL,
             dot_total_rewards DECIMAL,
+            pps_acct_balance DECIMAL,
             pps_total_dot_size DECIMAL,
             pps_total_swap DECIMAL,
             pps_avg_entry_price DECIMAL
@@ -119,6 +120,7 @@ def write_raw_data_to_db(
     dot_total_balance: float,
     dot_staked_balance: float,
     dot_total_rewards: float,
+    pps_account_balance: float,
     pps_total_dot_size: float,
     pps_total_swap: float,
     pps_avg_entry_price: float,
@@ -149,10 +151,11 @@ def write_raw_data_to_db(
             dot_total_balance,
             dot_staked_balance,
             dot_total_rewards,
+            pps_account_balance,
             pps_total_dot_size,
             pps_total_swap,
             pps_avg_entry_price
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
     """,
         (
             unix_time,
@@ -163,6 +166,7 @@ def write_raw_data_to_db(
             dot_total_balance,
             dot_staked_balance,
             dot_total_rewards,
+            pps_account_balance,
             pps_total_dot_size,
             pps_total_swap,
             pps_avg_entry_price,

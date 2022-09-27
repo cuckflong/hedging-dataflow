@@ -41,20 +41,6 @@ def calc_dot_fees(dot_balance: float, ftx_total_size: float, dot_rewards: float)
 
 
 @task
-def calc_pps_liq_value(
-    pps_avg_entry_price: float, pps_total_dot_size: float, pps_position_pnl: float
-) -> float:
-    logger = get_run_logger()
-    logger.info("Calculating PPS liquid value")
-
-    position_entry_value = pps_avg_entry_price * pps_total_dot_size
-
-    pps_liq_value = position_entry_value + pps_position_pnl
-
-    return pps_liq_value
-
-
-@task
 def calc_dot_liq_value(dot_market_price: float, dot_total_balance: float) -> float:
     logger = get_run_logger()
     logger.info("Calculating DOT liquid value")
