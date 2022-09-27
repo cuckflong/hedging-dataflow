@@ -52,17 +52,17 @@ def collect_all_data_flow(dry_run: bool = False):
         pps_avg_entry_price,
     ) = collect_pps_raw_data_flow()
 
-    logger.info(f"FTX total size: {ftx_total_size}")
-    logger.info(f"FTX avg cost: {ftx_avg_cost}")
-    logger.info(f"FTX withdrawal amount: {ftx_withdrawal_amount}")
-    logger.info(f"DOT market price: {dot_market_price}")
-    logger.info(f"DOT total balance: {dot_total_balance}")
-    logger.info(f"DOT staked balance: {dot_staked_balance}")
-    logger.info(f"DOT total rewards: {dot_total_rewards}")
-    logger.info(f"PPS account balance: {pps_acct_balance}")
-    logger.info(f"PPS total DOT size: {pps_total_dot_size}")
-    logger.info(f"PPS total swap: {pps_total_swap}")
-    logger.info(f"PPS avg entry price: {pps_avg_entry_price}")
+    logger.info(f"FTX total size (USD): {ftx_total_size}")
+    logger.info(f"FTX avg cost (USD): {ftx_avg_cost}")
+    logger.info(f"FTX withdrawal amount (DOT): {ftx_withdrawal_amount}")
+    logger.info(f"DOT market price (USD): {dot_market_price}")
+    logger.info(f"DOT total balance (DOT): {dot_total_balance}")
+    logger.info(f"DOT staked balance (DOT): {dot_staked_balance}")
+    logger.info(f"DOT total rewards (DOT): {dot_total_rewards}")
+    logger.info(f"PPS account balance (USD): {pps_acct_balance}")
+    logger.info(f"PPS total DOT size (DOT): {pps_total_dot_size}")
+    logger.info(f"PPS total swap (USD): {pps_total_swap}")
+    logger.info(f"PPS avg entry price (USD): {pps_avg_entry_price}")
 
     logger.info("Collecting raw data complete")
 
@@ -76,7 +76,10 @@ def collect_all_data_flow(dry_run: bool = False):
         dot_market_price, ftx_avg_cost, ftx_total_size
     )
 
-    dot_fees = calc_dot_fees(dot_total_balance, ftx_total_size, dot_total_rewards)
+    dot_fees = (
+        calc_dot_fees(dot_total_balance, ftx_total_size, dot_total_rewards)
+        * dot_market_price
+    )
 
     pps_liq_value = pps_acct_balance + pps_position_pnl
 
@@ -106,18 +109,18 @@ def collect_all_data_flow(dry_run: bool = False):
 
     total_pnl = position_pnl + interest_pnl
 
-    logger.info(f"PPS position PnL: {pps_position_pnl}")
-    logger.info(f"FTX position PnL: {ftx_position_pnl}")
-    logger.info(f"DOT fees: {dot_fees}")
-    logger.info(f"PPS liquidation value: {pps_liq_value}")
-    logger.info(f"DOT liquidation value: {dot_liq_value}")
-    logger.info(f"Total liquidation value: {total_liq_value}")
-    logger.info(f"DOT net position: {dot_net_position}")
-    logger.info(f"USD net position: {usd_net_position}")
-    logger.info(f"Interest PnL: {interest_pnl}")
-    logger.info(f"Position PnL: {position_pnl}")
-    logger.info(f"Total PnL: {total_pnl}")
-    logger.info(f"Total interests: {total_interest}")
+    logger.info(f"PPS position PnL (USD): {pps_position_pnl}")
+    logger.info(f"FTX position PnL (USD): {ftx_position_pnl}")
+    logger.info(f"DOT fees (USD): {dot_fees}")
+    logger.info(f"PPS liquidation value (USD): {pps_liq_value}")
+    logger.info(f"DOT liquidation value (USD): {dot_liq_value}")
+    logger.info(f"Total liquidation value (USD): {total_liq_value}")
+    logger.info(f"DOT net position (DOT): {dot_net_position}")
+    logger.info(f"USD net position (USD): {usd_net_position}")
+    logger.info(f"Interest PnL (USD): {interest_pnl}")
+    logger.info(f"Position PnL (USD): {position_pnl}")
+    logger.info(f"Total PnL (USD): {total_pnl}")
+    logger.info(f"Total interests (USD): {total_interest}")
 
     logger.info("Calculating derived data complete")
 
