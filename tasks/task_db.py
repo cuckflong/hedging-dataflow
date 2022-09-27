@@ -20,7 +20,7 @@ def drop_table(table_name: str):
         password=password,
     )
     cur = conn.cursor()
-    cur.execute("""DROP TABLE IF EXISTS %S;""", (table_name))
+    cur.execute("""DROP TABLE IF EXISTS %s;""", (table_name))
 
     conn.commit()
     cur.close()
