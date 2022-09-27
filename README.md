@@ -21,6 +21,12 @@ poetry install
 poetry shell
 ```
 
+## Start Prefect Server
+
+```
+bash ./scripts/start_prefect.sh
+```
+
 ## Apply all deployments
 
 ```
