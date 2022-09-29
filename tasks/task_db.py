@@ -54,17 +54,17 @@ def create_raw_data_table():
         CREATE TABLE IF NOT EXISTS hedge_data_raw (
             id SERIAL PRIMARY KEY,
             unix_time BIGINT NOT NULL,
-            ftx_total_size DECIMAL,
-            ftx_avg_cost DECIMAL,
-            ftx_withdrawal_amount DECIMAL,
-            dot_market_price DECIMAL,
-            dot_total_balance DECIMAL,
-            dot_staked_balance DECIMAL,
-            dot_total_rewards DECIMAL,
-            pps_acct_balance DECIMAL,
-            pps_total_dot_size DECIMAL,
-            pps_total_swap DECIMAL,
-            pps_avg_entry_price DECIMAL
+            ftx_total_size DOUBLE PRECISION,
+            ftx_avg_cost DOUBLE PRECISION,
+            ftx_withdrawal_amount DOUBLE PRECISION,
+            dot_market_price DOUBLE PRECISION,
+            dot_total_balance DOUBLE PRECISION,
+            dot_staked_balance DOUBLE PRECISION,
+            dot_total_rewards DOUBLE PRECISION,
+            pps_acct_balance DOUBLE PRECISION,
+            pps_total_dot_size DOUBLE PRECISION,
+            pps_total_swap DOUBLE PRECISION,
+            pps_avg_entry_price DOUBLE PRECISION
         );
     """
     )
@@ -96,18 +96,18 @@ def create_derived_data_table():
         CREATE TABLE IF NOT EXISTS hedge_data_derived (
             id SERIAL PRIMARY KEY,
             unix_time BIGINT NOT NULL,
-            pps_position_pnl DECIMAL,
-            ftx_position_pnl DECIMAL,
-            pps_liq_value DECIMAL,
-            dot_liq_value DECIMAL,
-            total_liq_value DECIMAL,
-            dot_net_position DECIMAL,
-            usd_net_position DECIMAL,
-            dot_fees DECIMAL,
-            total_interest DECIMAL,
-            interest_pnl DECIMAL,
-            position_pnl DECIMAL,
-            total_pnl DECIMAL
+            pps_position_pnl DOUBLE PRECISION,
+            ftx_position_pnl DOUBLE PRECISION,
+            pps_liq_value DOUBLE PRECISION,
+            dot_liq_value DOUBLE PRECISION,
+            total_liq_value DOUBLE PRECISION,
+            dot_net_position DOUBLE PRECISION,
+            usd_net_position DOUBLE PRECISION,
+            dot_fees DOUBLE PRECISION,
+            total_interest DOUBLE PRECISION,
+            interest_pnl DOUBLE PRECISION,
+            position_pnl DOUBLE PRECISION,
+            total_pnl DOUBLE PRECISION
         );
     """
     )
