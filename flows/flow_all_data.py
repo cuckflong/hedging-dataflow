@@ -8,17 +8,9 @@ from flows.flow_pps_data import collect_pps_raw_data_flow
 from tasks.task_db import (
     create_derived_data_table,
     create_raw_data_table,
-    get_last_total_interest_value,
-    get_last_total_liq_value,
+    get_last_derived_value,
     write_derived_data_to_db,
     write_raw_data_to_db,
-)
-from tasks.task_derived import (
-    calc_dot_fees,
-    calc_dot_liq_value,
-    calc_dot_net_position,
-    calc_ftx_position_pnl,
-    calc_pps_position_pnl,
 )
 
 
@@ -33,9 +25,11 @@ def collect_all_data_flow(dry_run: bool = False):
     unix_time = int(time.time())
 
     (
-        ftx_total_size,
-        ftx_avg_cost,
-        ftx_withdrawal_amount,
+        ftx_dot_balance,
+        ftx_cost_size,
+        ftx_cost_avg_price,
+        ftx_settled_size,
+        ftx_settled_avg_price,
         dot_market_price,
     ) = collect_ftx_raw_data_flow()
 
@@ -47,115 +41,156 @@ def collect_all_data_flow(dry_run: bool = False):
 
     (
         pps_acct_balance,
-        pps_total_dot_size,
-        pps_total_swap,
-        pps_avg_entry_price,
+        pps_open_margin,
+        pps_open_dot_size,
+        pps_open_dot_avg_price,
+        pps_open_swap,
+        pps_closed_margin,
+        pps_closed_dot_size,
+        pps_closed_dot_avg_price,
+        pps_closed_swap,
     ) = collect_pps_raw_data_flow()
-
-    logger.info(f"FTX total size (DOT): {ftx_total_size}")
-    logger.info(f"FTX avg cost (USD): {ftx_avg_cost}")
-    logger.info(f"FTX withdrawal amount (DOT): {ftx_withdrawal_amount}")
-    logger.info(f"DOT market price (USD): {dot_market_price}")
-    logger.info(f"DOT total balance (DOT): {dot_total_balance}")
-    logger.info(f"DOT staked balance (DOT): {dot_staked_balance}")
-    logger.info(f"DOT total rewards (DOT): {dot_total_rewards}")
-    logger.info(f"PPS account balance (USD): {pps_acct_balance}")
-    logger.info(f"PPS total DOT size (DOT): {pps_total_dot_size}")
-    logger.info(f"PPS total swap (USD): {pps_total_swap}")
-    logger.info(f"PPS avg entry price (USD): {pps_avg_entry_price}")
 
     logger.info("Collecting raw data complete")
 
     logger.info("Calculating derived data")
 
-    pps_position_pnl = calc_pps_position_pnl(
-        dot_market_price, pps_avg_entry_price, pps_total_dot_size
+    pps_open_pnl = (pps_open_dot_avg_price - dot_market_price) * abs(pps_open_dot_size)
+    pps_closed_pnl = (pps_closed_dot_avg_price - dot_market_price) * abs(
+        pps_closed_dot_size
+    )
+    pps_open_liquid_value = pps_open_margin + pps_open_pnl + pps_open_swap
+    pps_closed_liquid_value = pps_closed_margin + pps_closed_pnl + pps_closed_swap
+    prev_closed_liq_value = get_last_derived_value("pps_closed_liquid_value")
+
+    if prev_closed_liq_value is None:
+        pps_closed_diff = 0
+    else:
+        pps_closed_diff = pps_closed_liquid_value - prev_closed_liq_value
+
+    pps_total_swap = pps_open_swap + pps_closed_swap
+
+    dot_liquid_value = (
+        dot_total_balance * dot_market_price + ftx_dot_balance * dot_market_price
     )
 
-    ftx_position_pnl = calc_ftx_position_pnl(
-        dot_market_price, ftx_avg_cost, ftx_total_size
-    )
+    total_liquid_value = pps_open_liquid_value + dot_liquid_value
+
+    prev_liquid_value = get_last_derived_value("total_liquid_value")
+
+    if prev_liquid_value is None:
+        liquid_value_diff = 0
+    else:
+        liquid_value_diff = total_liquid_value - prev_liquid_value
+
+    total_cost = ftx_cost_size * ftx_cost_avg_price + pps_open_margin
+
+    prev_cost = get_last_derived_value("total_cost")
+
+    if prev_cost is None:
+        cost_diff = 0
+    else:
+        cost_diff = total_cost - prev_cost
+
+    total_settled = ftx_settled_size * ftx_settled_avg_price
+
+    prev_settled = get_last_derived_value("total_settled")
+
+    if prev_settled is None:
+        settled_diff = 0
+    else:
+        settled_diff = total_settled - prev_settled
+
+    staked_ratio = dot_staked_balance / (dot_total_balance + ftx_dot_balance) * 100
+
+    margin_ratio = (pps_acct_balance / pps_open_margin) * 100
+
+    dot_net_position = dot_total_balance + ftx_dot_balance + pps_open_dot_size
 
     dot_fees = (
-        calc_dot_fees(dot_total_balance, ftx_total_size, dot_total_rewards)
-        * dot_market_price
+        ftx_cost_size
+        - (ftx_settled_size + ftx_dot_balance + dot_total_balance)
+        + dot_total_rewards
     )
 
-    pps_liq_value = pps_acct_balance + pps_position_pnl
-
-    dot_liq_value = calc_dot_liq_value(dot_market_price, dot_total_balance)
-
-    total_liq_value = pps_liq_value + dot_liq_value
-
-    dot_net_position = calc_dot_net_position(pps_total_dot_size, dot_total_balance)
-
-    usd_net_position = dot_net_position * dot_market_price
-
-    prev_total_liq_value = get_last_total_liq_value()
-
-    prev_total_interest = get_last_total_interest_value()
-
-    total_interest = dot_total_rewards * dot_market_price + pps_total_swap
-
-    if prev_total_interest == 0:
-        interest_pnl = 0.0
-    else:
-        interest_pnl = total_interest - prev_total_interest
-
-    if prev_total_liq_value == 0:
-        position_pnl = 0.0
-    else:
-        position_pnl = total_liq_value - prev_total_liq_value
-
-    total_pnl = position_pnl + interest_pnl
-
-    logger.info(f"PPS position PnL (USD): {pps_position_pnl}")
-    logger.info(f"FTX position PnL (USD): {ftx_position_pnl}")
-    logger.info(f"DOT fees (USD): {dot_fees}")
-    logger.info(f"PPS liquidation value (USD): {pps_liq_value}")
-    logger.info(f"DOT liquidation value (USD): {dot_liq_value}")
-    logger.info(f"Total liquidation value (USD): {total_liq_value}")
-    logger.info(f"DOT net position (DOT): {dot_net_position}")
-    logger.info(f"USD net position (USD): {usd_net_position}")
-    logger.info(f"Interest PnL (USD): {interest_pnl}")
-    logger.info(f"Position PnL (USD): {position_pnl}")
-    logger.info(f"Total PnL (USD): {total_pnl}")
-    logger.info(f"Total interests (USD): {total_interest}")
+    pnl = liquid_value_diff - cost_diff + pps_closed_diff + settled_diff
 
     logger.info("Calculating derived data complete")
+
+    logger.info(f"Raw - FTX DOT balance: {ftx_dot_balance}")
+    logger.info(f"Raw - FTX cost size: {ftx_cost_size}")
+    logger.info(f"Raw - FTX cost avg price: {ftx_cost_avg_price}")
+    logger.info(f"Raw - FTX settled size: {ftx_settled_size}")
+    logger.info(f"Raw - FTX settled avg price: {ftx_settled_avg_price}")
+    logger.info(f"Raw - DOT market price: {dot_market_price}")
+    logger.info(f"Raw - DOT total balance: {dot_total_balance}")
+    logger.info(f"Raw - DOT staked balance: {dot_staked_balance}")
+    logger.info(f"Raw - DOT total rewards: {dot_total_rewards}")
+    logger.info(f"Raw - PPS account balance: {pps_acct_balance}")
+    logger.info(f"Raw - PPS open margin: {pps_open_margin}")
+    logger.info(f"Raw - PPS open DOT size: {pps_open_dot_size}")
+    logger.info(f"Raw - PPS open DOT avg price: {pps_open_dot_avg_price}")
+    logger.info(f"Raw - PPS open swap: {pps_open_swap}")
+    logger.info(f"Raw - PPS closed margin: {pps_closed_margin}")
+    logger.info(f"Raw - PPS closed DOT size: {pps_closed_dot_size}")
+    logger.info(f"Raw - PPS closed DOT avg price: {pps_closed_dot_avg_price}")
+    logger.info(f"Raw - PPS closed swap: {pps_closed_swap}")
+    logger.info(f"Derived - PPS open PnL: {pps_open_pnl}")
+    logger.info(f"Derived - PPS closed PnL: {pps_closed_pnl}")
+    logger.info(f"Derived - PPS open liquid value: {pps_open_liquid_value}")
+    logger.info(f"Derived - PPS closed liquid value: {pps_closed_liquid_value}")
+    logger.info(f"Derived - PPS total swap: {pps_total_swap}")
+    logger.info(f"Derived - DOT liquid value: {dot_liquid_value}")
+    logger.info(f"Derived - Total liquid value: {total_liquid_value}")
+    logger.info(f"Derived - Total cost: {total_cost}")
+    logger.info(f"Derived - Total settled: {total_settled}")
+    logger.info(f"Derived - Staked ratio: {staked_ratio}")
+    logger.info(f"Derived - Margin ratio: {margin_ratio}")
+    logger.info(f"Derived - DOT net position: {dot_net_position}")
+    logger.info(f"Derived - DOT fees: {dot_fees}")
+    logger.info(f"Derived - PnL: {pnl}")
 
     if dry_run:
         return
 
     write_raw_data_to_db(
         unix_time,
-        ftx_total_size,
-        ftx_avg_cost,
-        ftx_withdrawal_amount,
+        ftx_dot_balance,
+        ftx_cost_size,
+        ftx_cost_avg_price,
+        ftx_settled_size,
+        ftx_settled_avg_price,
         dot_market_price,
         dot_total_balance,
         dot_staked_balance,
         dot_total_rewards,
         pps_acct_balance,
-        pps_total_dot_size,
-        pps_total_swap,
-        pps_avg_entry_price,
+        pps_open_margin,
+        pps_open_dot_size,
+        pps_open_dot_avg_price,
+        pps_open_swap,
+        pps_closed_margin,
+        pps_closed_dot_size,
+        pps_closed_dot_avg_price,
+        pps_closed_swap,
     )
 
     write_derived_data_to_db(
         unix_time,
-        pps_position_pnl,
-        ftx_position_pnl,
-        pps_liq_value,
-        dot_liq_value,
-        total_liq_value,
+        pps_open_pnl,
+        pps_closed_pnl,
+        pps_open_liquid_value,
+        pps_closed_liquid_value,
+        pps_total_swap,
+        dot_liquid_value,
+        total_liquid_value,
+        total_cost,
+        total_settled,
+        staked_ratio,
+        margin_ratio,
         dot_net_position,
-        usd_net_position,
         dot_fees,
-        total_interest,
-        interest_pnl,
-        position_pnl,
-        total_pnl,
+        pnl,
     )
 
 

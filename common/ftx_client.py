@@ -84,5 +84,5 @@ class FtxClient:
     def get_deposit_history(self) -> List[dict]:
         return self._get("wallet/deposits")
 
-    def get_subaccount_balances(self, nickname: str) -> List[dict]:
-        return self._get(f"subaccounts/{nickname}/balances")
+    def get_balances(self) -> List[dict]:
+        return self._get("wallet/balances")

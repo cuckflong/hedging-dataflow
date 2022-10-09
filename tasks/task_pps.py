@@ -13,7 +13,10 @@ from ctrader_open_api.messages.OpenApiMessages_pb2 import (
     ProtoOATraderReq,
     ProtoOATraderRes,
 )
-from ctrader_open_api.messages.OpenApiModelMessages_pb2 import ProtoOAPositionStatus
+from ctrader_open_api.messages.OpenApiModelMessages_pb2 import (
+    ProtoOAPositionStatus,
+    ProtoOATradeSide,
+)
 from prefect import get_run_logger, task
 from prefect.blocks.system import Secret, String
 from twisted.internet import reactor
@@ -106,38 +109,75 @@ def pps_get_all_data():
         moneyDigits = trader_data.trader.moneyDigits
         pps_account_balance = trader_data.trader.balance / 10**moneyDigits
         logger.info(f"PPS Account Balance: {pps_account_balance}")
-        String(value=pps_account_balance).save("pps-last-acct-balance", overwrite=True)
+        String(value=pps_account_balance).save("pps-acct-balance", overwrite=True)
 
     def parse_positions(positions):
-        total_dot_size = 0
-        total_swap = 0
-        entry_position_size = 0
-        avg_entry_price = 0
+        open_dot_size = 0
+        open_swap = 0
+        open_positions_size = 0
+        open_margin = 0
+        open_dot_avg_price = 0
+
+        closed_dot_size = 0
+        closed_swap = 0
+        closed_positions_size = 0
+        closed_margin = 0
+        closed_dot_avg_price = 0
         for position in positions.position:
             if (
                 position.tradeData.symbolId != int(symbol_id)
-                or position.positionStatus != ProtoOAPositionStatus.POSITION_STATUS_OPEN
+                or position.tradeData.tradeSide != ProtoOATradeSide.SELL
             ):
                 continue
-            moneyDigits = position.moneyDigits
-            volume = position.tradeData.volume / 10**moneyDigits
-            swap = position.swap / 10**moneyDigits
-            price = position.price
-            positionSize = volume * price
+            if position.positionStatus == ProtoOAPositionStatus.POSITION_STATUS_OPEN:
+                moneyDigits = position.moneyDigits
+                volume = position.tradeData.volume / 10**moneyDigits
+                swap = position.swap / 10**moneyDigits
+                margin = position.usedMargin / 10**moneyDigits
+                price = position.price
+                positionSize = volume * price
 
-            total_dot_size += volume
-            total_swap += swap
-            entry_position_size -= positionSize
+                open_dot_size -= volume
+                open_swap += swap
+                open_positions_size += positionSize
+                open_margin += margin
+            elif (
+                position.positionStatus == ProtoOAPositionStatus.POSITION_STATUS_CLOSED
+            ):
+                moneyDigits = position.moneyDigits
+                volume = position.tradeData.volume / 10**moneyDigits
+                swap = position.swap / 10**moneyDigits
+                margin = position.usedMargin / 10**moneyDigits
+                price = position.price
+                positionSize = volume * price
 
-        avg_entry_price = abs(entry_position_size) / total_dot_size
+                closed_dot_size -= volume
+                closed_swap += swap
+                closed_positions_size += positionSize
+                closed_margin += margin
+            else:
+                continue
 
-        logger.info(f"PPS - Total Dot Size: {total_dot_size}")
-        logger.info(f"PPS - Total Swap: {total_swap}")
-        logger.info(f"PPS - Average Entry Price: {avg_entry_price}")
+        if open_dot_size != 0:
+            open_dot_avg_price = open_positions_size / abs(open_dot_size)
+        else:
+            open_dot_avg_price = 0
+        if closed_dot_size != 0:
+            closed_dot_avg_price = closed_positions_size / abs(closed_dot_size)
+        else:
+            closed_dot_avg_price = 0
 
-        String(value=avg_entry_price).save("pps-last-avg-entry-price", overwrite=True)
-        String(value=total_dot_size).save("pps-last-total-dot-size", overwrite=True)
-        String(value=total_swap).save("pps-last-total-swap", overwrite=True)
+        String(value=open_margin).save("pps-open-margin", overwrite=True)
+        String(value=open_dot_size).save("pps-open-dot-size", overwrite=True)
+        String(value=open_dot_avg_price).save("pps-open-dot-avg-price", overwrite=True)
+        String(value=open_swap).save("pps-open-swap", overwrite=True)
+
+        String(value=closed_margin).save("pps-closed-margin", overwrite=True)
+        String(value=closed_dot_size).save("pps-closed-dot-size", overwrite=True)
+        String(value=closed_dot_avg_price).save(
+            "pps-closed-dot-avg-price", overwrite=True
+        )
+        String(value=closed_swap).save("pps-closed-swap", overwrite=True)
 
     # Setting optional client callbacks
     client.setConnectedCallback(connected)

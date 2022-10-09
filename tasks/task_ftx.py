@@ -16,7 +16,7 @@ def ftx_get_dot_cost():
         api_key=api_key, api_secret=api_secret, subaccount_name=subaccount_name
     )
     orders = ftx.get_order_history()
-    total_cost: float = 0
+    total_usd: float = 0
     total_size: float = 0
     for order in orders:
         if (
@@ -26,15 +26,56 @@ def ftx_get_dot_cost():
         ):
             avg_price = order["avgFillPrice"]
             size = order["filledSize"]
-            total_cost += avg_price * size
+            total_usd += avg_price * size
             total_size += size
 
-    avg_cost = total_cost / total_size
+    if total_size == 0:
+        avg_cost = 0
+    else:
+        avg_cost = total_usd / total_size
 
     logger.info(f"FTX - DOT Size: {total_size}")
-    logger.info(f"FTX - DOT Avg Cost: {avg_cost}")
+    logger.info(f"FTX - DOT Avg Price: {avg_cost}")
+    logger.info(f"FTX - DOT Cost USD: {total_usd}")
 
     return total_size, avg_cost
+
+
+@task(name="FTX DOT Settlement Task")
+def ftx_get_dot_settlement():
+    logger = get_run_logger()
+    logger.info("FTX - Getting DOT Settlement")
+
+    api_key = Secret.load("ftx-api-key").get()
+    api_secret = Secret.load("ftx-api-secret").get()
+    subaccount_name = String.load("ftx-account").value
+    ftx = FtxClient(
+        api_key=api_key, api_secret=api_secret, subaccount_name=subaccount_name
+    )
+    orders = ftx.get_order_history()
+    total_usd: float = 0
+    total_size: float = 0
+    for order in orders:
+        if (
+            order["market"] == "DOT/USD"
+            and order["side"] == "sell"
+            and order["status"] == "closed"
+        ):
+            avg_price = order["avgFillPrice"]
+            size = order["filledSize"]
+            total_usd += avg_price * size
+            total_size += size
+
+    if total_size > 0:
+        avg_price = total_usd / total_size
+    else:
+        avg_price = 0
+
+    logger.info(f"FTX - DOT Size: {total_size}")
+    logger.info(f"FTX - DOT Avg Price: {avg_price}")
+    logger.info(f"FTX - DOT Total USD: {total_usd}")
+
+    return total_size, avg_price
 
 
 @task(name="FTX DOT Market Price Task")
@@ -78,6 +119,28 @@ def ftx_get_dot_withdrawn():
     logger.info(f"FTX - DOT Withdrawn: {total_withdrawn}")
 
     return total_withdrawn
+
+
+@task(name="FTX DOT Balance Task")
+def ftx_get_dot_balance():
+    logger = get_run_logger()
+    logger.info("FTX - Getting DOT Balance")
+
+    api_key = Secret.load("ftx-api-key").get()
+    api_secret = Secret.load("ftx-api-secret").get()
+    subaccount_name = String.load("ftx-account").value
+    ftx = FtxClient(
+        api_key=api_key, api_secret=api_secret, subaccount_name=subaccount_name
+    )
+    balances = ftx.get_balances()
+    dot_balance = 0
+    for balance in balances:
+        if balance["coin"] == "DOT":
+            dot_balance = balance["total"]
+
+    logger.info(f"FTX - DOT Balance: {dot_balance}")
+
+    return dot_balance
 
 
 @task

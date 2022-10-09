@@ -11,11 +11,29 @@ def collect_pps_raw_data_flow():
 
     pps_get_all_data()
 
-    pps_acct_balance = float(String.load("pps-last-acct-balance").value)
-    pps_total_dot_size = float(String.load("pps-last-total-dot-size").value)
-    pps_total_swap = float(String.load("pps-last-total-swap").value)
-    pps_avg_entry_price = float(String.load("pps-last-avg-entry-price").value)
-    return pps_acct_balance, pps_total_dot_size, pps_total_swap, pps_avg_entry_price
+    pps_acct_balance = float(String.load("pps-acct-balance").value)
+
+    pps_open_margin = float(String.load("pps-open-margin").value)
+    pps_open_dot_size = float(String.load("pps-open-dot-size").value)
+    pps_open_dot_avg_price = float(String.load("pps-open-dot-avg-price").value)
+    pps_open_swap = float(String.load("pps-open-swap").value)
+
+    pps_closed_margin = float(String.load("pps-closed-margin").value)
+    pps_closed_dot_size = float(String.load("pps-closed-dot-size").value)
+    pps_closed_dot_avg_price = float(String.load("pps-closed-dot-avg-price").value)
+    pps_closed_swap = float(String.load("pps-closed-swap").value)
+
+    return (
+        pps_acct_balance,
+        pps_open_margin,
+        pps_open_dot_size,
+        pps_open_dot_avg_price,
+        pps_open_swap,
+        pps_closed_margin,
+        pps_closed_dot_size,
+        pps_closed_dot_avg_price,
+        pps_closed_swap,
+    )
 
 
 @flow(name="Refresh PPS token")

@@ -54,17 +54,24 @@ def create_raw_data_table():
         CREATE TABLE IF NOT EXISTS hedge_data_raw (
             id SERIAL PRIMARY KEY,
             unix_time BIGINT NOT NULL,
-            ftx_total_size DOUBLE PRECISION,
-            ftx_avg_cost DOUBLE PRECISION,
-            ftx_withdrawal_amount DOUBLE PRECISION,
+            ftx_dot_balance DOUBLE PRECISION,
+            ftx_cost_size DOUBLE PRECISION,
+            ftx_cost_avg_price DOUBLE PRECISION,
+            ftx_settled_size DOUBLE PRECISION,
+            ftx_settled_avg_price DOUBLE PRECISION,
             dot_market_price DOUBLE PRECISION,
             dot_total_balance DOUBLE PRECISION,
             dot_staked_balance DOUBLE PRECISION,
             dot_total_rewards DOUBLE PRECISION,
             pps_acct_balance DOUBLE PRECISION,
-            pps_total_dot_size DOUBLE PRECISION,
-            pps_total_swap DOUBLE PRECISION,
-            pps_avg_entry_price DOUBLE PRECISION
+            pps_open_margin DOUBLE PRECISION,
+            pps_open_dot_size DOUBLE PRECISION,
+            pps_open_dot_avg_price DOUBLE PRECISION,
+            pps_open_swap DOUBLE PRECISION,
+            pps_closed_margin DOUBLE PRECISION,
+            pps_closed_dot_size DOUBLE PRECISION,
+            pps_closed_dot_avg_price DOUBLE PRECISION,
+            pps_closed_swap DOUBLE PRECISION
         );
     """
     )
@@ -96,18 +103,20 @@ def create_derived_data_table():
         CREATE TABLE IF NOT EXISTS hedge_data_derived (
             id SERIAL PRIMARY KEY,
             unix_time BIGINT NOT NULL,
-            pps_position_pnl DOUBLE PRECISION,
-            ftx_position_pnl DOUBLE PRECISION,
-            pps_liq_value DOUBLE PRECISION,
-            dot_liq_value DOUBLE PRECISION,
-            total_liq_value DOUBLE PRECISION,
+            pps_open_pnl DOUBLE PRECISION,
+            pps_closed_pnl DOUBLE PRECISION,
+            pps_open_liquid_value DOUBLE PRECISION,
+            pps_closed_liquid_value DOUBLE PRECISION,
+            pps_total_swap DOUBLE PRECISION,
+            dot_liquid_value DOUBLE PRECISION,
+            total_liquid_value DOUBLE PRECISION,
+            total_cost DOUBLE PRECISION,
+            total_settled DOUBLE PRECISION,
+            staked_ratio DOUBLE PRECISION,
+            margin_ratio DOUBLE PRECISION,
             dot_net_position DOUBLE PRECISION,
-            usd_net_position DOUBLE PRECISION,
             dot_fees DOUBLE PRECISION,
-            total_interest DOUBLE PRECISION,
-            interest_pnl DOUBLE PRECISION,
-            position_pnl DOUBLE PRECISION,
-            total_pnl DOUBLE PRECISION
+            pnl DOUBLE PRECISION
         );
     """
     )
@@ -120,17 +129,24 @@ def create_derived_data_table():
 @task
 def write_raw_data_to_db(
     unix_time: int,
-    ftx_total_size: float,
-    ftx_avg_cost: float,
-    ftx_withdrawal_amount: float,
+    ftx_dot_balance: float,
+    ftx_cost_size: float,
+    ftx_cost_avg_price: float,
+    ftx_settled_size: float,
+    ftx_settled_avg_price: float,
     dot_market_price: float,
     dot_total_balance: float,
     dot_staked_balance: float,
     dot_total_rewards: float,
     pps_acct_balance: float,
-    pps_total_dot_size: float,
-    pps_total_swap: float,
-    pps_avg_entry_price: float,
+    pps_open_margin: float,
+    pps_open_dot_size: float,
+    pps_open_dot_avg_price: float,
+    pps_open_swap: float,
+    pps_closed_margin: float,
+    pps_closed_dot_size: float,
+    pps_closed_dot_avg_price: float,
+    pps_closed_swap: float,
 ):
     logger = get_run_logger()
 
@@ -151,32 +167,46 @@ def write_raw_data_to_db(
         """
         INSERT INTO hedge_data_raw (
             unix_time,
-            ftx_total_size,
-            ftx_avg_cost,
-            ftx_withdrawal_amount,
+            ftx_dot_balance,
+            ftx_cost_size,
+            ftx_cost_avg_price,
+            ftx_settled_size,
+            ftx_settled_avg_price,
             dot_market_price,
             dot_total_balance,
             dot_staked_balance,
             dot_total_rewards,
             pps_acct_balance,
-            pps_total_dot_size,
-            pps_total_swap,
-            pps_avg_entry_price
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+            pps_open_margin,
+            pps_open_dot_size,
+            pps_open_dot_avg_price,
+            pps_open_swap,
+            pps_closed_margin,
+            pps_closed_dot_size,
+            pps_closed_dot_avg_price,
+            pps_closed_swap
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
     """,
         (
             unix_time,
-            ftx_total_size,
-            ftx_avg_cost,
-            ftx_withdrawal_amount,
+            ftx_dot_balance,
+            ftx_cost_size,
+            ftx_cost_avg_price,
+            ftx_settled_size,
+            ftx_settled_avg_price,
             dot_market_price,
             dot_total_balance,
             dot_staked_balance,
             dot_total_rewards,
             pps_acct_balance,
-            pps_total_dot_size,
-            pps_total_swap,
-            pps_avg_entry_price,
+            pps_open_margin,
+            pps_open_dot_size,
+            pps_open_dot_avg_price,
+            pps_open_swap,
+            pps_closed_margin,
+            pps_closed_dot_size,
+            pps_closed_dot_avg_price,
+            pps_closed_swap,
         ),
     )
     conn.commit()
@@ -188,18 +218,20 @@ def write_raw_data_to_db(
 @task
 def write_derived_data_to_db(
     unix_time: int,
-    pps_position_pnl: float,
-    ftx_position_pnl: float,
-    pps_liq_value: float,
-    dot_liq_value: float,
-    total_liq_value: float,
+    pps_open_pnl: float,
+    pps_closed_pnl: float,
+    pps_open_liquid_value: float,
+    pps_closed_liquid_value: float,
+    pps_total_swap: float,
+    dot_liquid_value: float,
+    total_liquid_value: float,
+    total_cost: float,
+    total_settled: float,
+    staked_ratio: float,
+    margin_ratio: float,
     dot_net_position: float,
-    usd_net_position: float,
     dot_fees: float,
-    total_interest: float,
-    interest_pnl: float,
-    position_pnl: float,
-    total_pnl: float,
+    pnl: float,
 ):
     logger = get_run_logger()
 
@@ -220,34 +252,38 @@ def write_derived_data_to_db(
         """
         INSERT INTO hedge_data_derived (
             unix_time,
-            pps_position_pnl,
-            ftx_position_pnl,
-            pps_liq_value,
-            dot_liq_value,
-            total_liq_value,
+            pps_open_pnl,
+            pps_closed_pnl,
+            pps_open_liquid_value,
+            pps_closed_liquid_value,
+            pps_total_swap,
+            dot_liquid_value,
+            total_liquid_value,
+            total_cost,
+            total_settled,
+            staked_ratio,
+            margin_ratio,
             dot_net_position,
-            usd_net_position,
             dot_fees,
-            total_interest,
-            interest_pnl,
-            position_pnl,
-            total_pnl
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+            pnl
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
     """,
         (
             unix_time,
-            pps_position_pnl,
-            ftx_position_pnl,
-            pps_liq_value,
-            dot_liq_value,
-            total_liq_value,
+            pps_open_pnl,
+            pps_closed_pnl,
+            pps_open_liquid_value,
+            pps_closed_liquid_value,
+            pps_total_swap,
+            dot_liquid_value,
+            total_liquid_value,
+            total_cost,
+            total_settled,
+            staked_ratio,
+            margin_ratio,
             dot_net_position,
-            usd_net_position,
             dot_fees,
-            total_interest,
-            interest_pnl,
-            position_pnl,
-            total_pnl,
+            pnl,
         ),
     )
     conn.commit()
@@ -257,10 +293,10 @@ def write_derived_data_to_db(
 
 
 @task
-def get_last_total_liq_value() -> float:
+def get_last_derived_value(col_name: str) -> float:
     logger = get_run_logger()
 
-    logger.info("Getting last total liq value")
+    logger.info(f"Getting last {col_name} value")
 
     database = Secret.load("prefect-psql-database").get()
     host = Secret.load("prefect-psql-host").get()
@@ -274,49 +310,14 @@ def get_last_total_liq_value() -> float:
     )
     cur = conn.cursor()
     cur.execute(
-        """
-        SELECT total_liq_value FROM hedge_data_derived ORDER BY unix_time DESC LIMIT 1;
-    """
+        f"SELECT {col_name} FROM hedge_data_derived ORDER BY unix_time DESC LIMIT 1;"
     )
     results = cur.fetchall()
     if len(results) == 0:
-        last_total_liq_value = 0
+        return None
     else:
-        last_total_liq_value = float(results[0][0])
+        derived_value = float(results[0][0])
 
     cur.close()
     conn.close()
-    return last_total_liq_value
-
-
-@task
-def get_last_total_interest_value() -> float:
-    logger = get_run_logger()
-
-    logger.info("Getting last total interest value")
-
-    database = Secret.load("prefect-psql-database").get()
-    host = Secret.load("prefect-psql-host").get()
-    user = Secret.load("prefect-psql-user").get()
-    password = Secret.load("prefect-psql-password").get()
-    conn = psycopg2.connect(
-        host=host,
-        database=database,
-        user=user,
-        password=password,
-    )
-    cur = conn.cursor()
-    cur.execute(
-        """
-        SELECT total_interest FROM hedge_data_derived ORDER BY unix_time DESC LIMIT 1;
-        """
-    )
-    results = cur.fetchall()
-    if len(results) == 0:
-        last_total_interest = 0
-    else:
-        last_total_interest = float(results[0][0])
-
-    cur.close()
-    conn.close()
-    return last_total_interest
+    return derived_value
