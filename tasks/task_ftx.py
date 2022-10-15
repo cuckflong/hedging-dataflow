@@ -25,7 +25,11 @@ def ftx_get_dot_cost():
             and order["status"] == "closed"
         ):
             avg_price = order["avgFillPrice"]
+            if avg_price is None:
+                avg_price = 0.0
             size = order["filledSize"]
+            if size is None:
+                size = 0.0
             total_usd += avg_price * size
             total_size += size
 
