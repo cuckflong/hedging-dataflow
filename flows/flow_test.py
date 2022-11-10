@@ -1,11 +1,11 @@
 from prefect import flow
 
-from tasks.task_db import drop_table
+from flows.flow_binance_data import collect_binance_raw_data_flow
 
 
 @flow
 def flow_test():
-    drop_table("hedge_data_raw")
+    collect_binance_raw_data_flow()
 
 
 if __name__ == "__main__":

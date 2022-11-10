@@ -2,6 +2,7 @@ import time
 
 from prefect import flow, get_run_logger
 
+from flows.flow_binance_data import collect_binance_raw_data_flow
 from flows.flow_dot_data import collect_dot_raw_data_flow
 from flows.flow_ftx_data import collect_ftx_raw_data_flow
 from flows.flow_pps_data import collect_pps_raw_data_flow
@@ -32,6 +33,8 @@ def collect_all_data_flow(dry_run: bool = False):
         ftx_settled_avg_price,
         dot_market_price,
     ) = collect_ftx_raw_data_flow()
+
+    binance_cost_size, binance_avg_price = collect_binance_raw_data_flow()
 
     (
         dot_total_balance,
@@ -83,7 +86,11 @@ def collect_all_data_flow(dry_run: bool = False):
     else:
         liquid_value_diff = total_liquid_value - prev_liquid_value
 
-    total_cost = ftx_cost_size * ftx_cost_avg_price + pps_open_margin
+    total_cost = (
+        ftx_cost_size * ftx_cost_avg_price
+        + binance_cost_size * binance_avg_price
+        + pps_open_margin
+    )
 
     prev_cost = get_last_derived_value("total_cost")
 
@@ -109,6 +116,7 @@ def collect_all_data_flow(dry_run: bool = False):
 
     dot_fees = (
         ftx_cost_size
+        + binance_cost_size
         - (ftx_settled_size + ftx_dot_balance + dot_total_balance)
         + dot_total_rewards
     )
@@ -122,6 +130,8 @@ def collect_all_data_flow(dry_run: bool = False):
     logger.info(f"Raw - FTX cost avg price: {ftx_cost_avg_price}")
     logger.info(f"Raw - FTX settled size: {ftx_settled_size}")
     logger.info(f"Raw - FTX settled avg price: {ftx_settled_avg_price}")
+    logger.info(f"Raw - Binance cost size: {binance_cost_size}")
+    logger.info(f"Raw - Binance cost avg price: {binance_avg_price}")
     logger.info(f"Raw - DOT market price: {dot_market_price}")
     logger.info(f"Raw - DOT total balance: {dot_total_balance}")
     logger.info(f"Raw - DOT staked balance: {dot_staked_balance}")
