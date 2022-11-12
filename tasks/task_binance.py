@@ -29,3 +29,18 @@ def binance_get_dot_cost():
     logger.info(f"Binance - DOT Cost USD: {total_usd}")
 
     return total_size, avg_cost
+
+
+@task(name="Binance DOT Market Price")
+def binance_get_dot_price():
+    logger = get_run_logger()
+    logger.info("Binance - Getting DOT Market Price")
+
+    api_key = Secret.load("binance-api-key").get()
+    api_secret = Secret.load("binance-api-secret").get()
+
+    client = Client(api_key=api_key, api_secret=api_secret)
+
+    dot_market_price: float = float(client.get_avg_price(symbol="DOTBUSD")["price"])
+
+    return dot_market_price

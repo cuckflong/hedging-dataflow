@@ -31,10 +31,13 @@ def collect_all_data_flow(dry_run: bool = False):
         ftx_cost_avg_price,
         ftx_settled_size,
         ftx_settled_avg_price,
-        dot_market_price,
     ) = collect_ftx_raw_data_flow()
 
-    binance_cost_size, binance_avg_price = collect_binance_raw_data_flow()
+    (
+        binance_cost_size,
+        binance_avg_price,
+        dot_market_price,
+    ) = collect_binance_raw_data_flow()
 
     (
         dot_total_balance,
