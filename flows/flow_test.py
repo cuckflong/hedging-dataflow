@@ -1,11 +1,11 @@
 from prefect import flow
 
-from flows.flow_binance_data import collect_binance_raw_data_flow
+from tasks.task_pps import pps_get_all_data
 
 
 @flow
 def flow_test():
-    collect_binance_raw_data_flow()
+    pps_get_all_data()
 
 
 if __name__ == "__main__":

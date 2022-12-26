@@ -10,6 +10,7 @@ from tasks.task_db import (
     create_derived_data_table,
     create_raw_data_table,
     get_last_derived_value,
+    get_last_raw_value,
     write_derived_data_to_db,
     write_raw_data_to_db,
 )
@@ -51,10 +52,8 @@ def collect_all_data_flow(dry_run: bool = False):
         pps_open_dot_size,
         pps_open_dot_avg_price,
         pps_open_swap,
-        pps_closed_margin,
-        pps_closed_dot_size,
-        pps_closed_dot_avg_price,
         pps_closed_swap,
+        pps_realized_pnl,
     ) = collect_pps_raw_data_flow()
 
     logger.info("Collecting raw data complete")
@@ -62,17 +61,8 @@ def collect_all_data_flow(dry_run: bool = False):
     logger.info("Calculating derived data")
 
     pps_open_pnl = (pps_open_dot_avg_price - dot_market_price) * abs(pps_open_dot_size)
-    pps_closed_pnl = (pps_closed_dot_avg_price - dot_market_price) * abs(
-        pps_closed_dot_size
-    )
-    pps_open_liquid_value = pps_open_margin + pps_open_pnl + pps_open_swap
-    pps_closed_liquid_value = pps_closed_margin + pps_closed_pnl + pps_closed_swap
-    prev_closed_liq_value = get_last_derived_value("pps_closed_liquid_value")
 
-    if prev_closed_liq_value is None:
-        pps_closed_diff = 0
-    else:
-        pps_closed_diff = pps_closed_liquid_value - prev_closed_liq_value
+    pps_open_liquid_value = pps_open_margin + pps_open_pnl + pps_open_swap
 
     pps_total_swap = pps_open_swap + pps_closed_swap
 
@@ -111,6 +101,20 @@ def collect_all_data_flow(dry_run: bool = False):
     else:
         settled_diff = total_settled - prev_settled
 
+    prev_pps_pnl = get_last_raw_value("pps_realized_pnl")
+
+    if prev_pps_pnl is None:
+        pps_pnl_diff = 0
+    else:
+        pps_pnl_diff = pps_realized_pnl - prev_pps_pnl
+
+    prev_pps_swap = get_last_raw_value("pps_closed_swap")
+
+    if prev_pps_swap is None:
+        pps_swap_diff = 0
+    else:
+        pps_swap_diff = pps_closed_swap - prev_pps_swap
+
     staked_ratio = dot_staked_balance / (dot_total_balance + ftx_dot_balance) * 100
 
     margin_ratio = ((pps_acct_balance + pps_open_pnl) / pps_open_margin) * 100
@@ -124,7 +128,7 @@ def collect_all_data_flow(dry_run: bool = False):
         + dot_total_rewards
     )
 
-    pnl = liquid_value_diff - cost_diff + pps_closed_diff + settled_diff
+    pnl = liquid_value_diff - cost_diff + settled_diff + pps_pnl_diff + pps_swap_diff
 
     logger.info("Calculating derived data complete")
 
@@ -144,14 +148,10 @@ def collect_all_data_flow(dry_run: bool = False):
     logger.info(f"Raw - PPS open DOT size: {pps_open_dot_size}")
     logger.info(f"Raw - PPS open DOT avg price: {pps_open_dot_avg_price}")
     logger.info(f"Raw - PPS open swap: {pps_open_swap}")
-    logger.info(f"Raw - PPS closed margin: {pps_closed_margin}")
-    logger.info(f"Raw - PPS closed DOT size: {pps_closed_dot_size}")
-    logger.info(f"Raw - PPS closed DOT avg price: {pps_closed_dot_avg_price}")
     logger.info(f"Raw - PPS closed swap: {pps_closed_swap}")
+    logger.info(f"Raw - PPS realized pnl: {pps_realized_pnl}")
     logger.info(f"Derived - PPS open PnL: {pps_open_pnl}")
-    logger.info(f"Derived - PPS closed PnL: {pps_closed_pnl}")
     logger.info(f"Derived - PPS open liquid value: {pps_open_liquid_value}")
-    logger.info(f"Derived - PPS closed liquid value: {pps_closed_liquid_value}")
     logger.info(f"Derived - PPS total swap: {pps_total_swap}")
     logger.info(f"Derived - DOT liquid value: {dot_liquid_value}")
     logger.info(f"Derived - Total liquid value: {total_liquid_value}")
@@ -182,18 +182,14 @@ def collect_all_data_flow(dry_run: bool = False):
         pps_open_dot_size,
         pps_open_dot_avg_price,
         pps_open_swap,
-        pps_closed_margin,
-        pps_closed_dot_size,
-        pps_closed_dot_avg_price,
         pps_closed_swap,
+        pps_realized_pnl,
     )
 
     write_derived_data_to_db(
         unix_time,
         pps_open_pnl,
-        pps_closed_pnl,
         pps_open_liquid_value,
-        pps_closed_liquid_value,
         pps_total_swap,
         dot_liquid_value,
         total_liquid_value,

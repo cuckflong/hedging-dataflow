@@ -1,3 +1,5 @@
+import time
+
 from ctrader_open_api import Client, EndPoints, Protobuf, TcpProtocol
 from ctrader_open_api.endpoints import EndPoints
 from ctrader_open_api.messages.OpenApiCommonMessages_pb2 import *
@@ -6,6 +8,8 @@ from ctrader_open_api.messages.OpenApiMessages_pb2 import (
     ProtoOAAccountAuthRes,
     ProtoOAApplicationAuthReq,
     ProtoOAApplicationAuthRes,
+    ProtoOADealListReq,
+    ProtoOADealListRes,
     ProtoOAReconcileReq,
     ProtoOAReconcileRes,
     ProtoOARefreshTokenReq,
@@ -21,12 +25,20 @@ from prefect import get_run_logger, task
 from prefect.blocks.system import Secret, String
 from twisted.internet import reactor
 
+startTimestamp = 1659359343000
+endTimestamp = round(time.time() * 1000)
+
+realized_pnl = 0
+closed_swap = 0
+
 
 @task(name="PPS Get Data Task")
 def pps_get_all_data():
     logger = get_run_logger()
 
     hostType = "live"
+
+    step = 604800000
 
     account_id = int(Secret.load("ctrader-account-id").get())
     client_id = Secret.load("ctrader-client-id").get()
@@ -54,6 +66,8 @@ def pps_get_all_data():
         logger.info("cTrader - Disconnected: ", reason)
 
     def on_message_received(_, message):  # Callback for receiving all messages
+        global startTimestamp
+        global endTimestamp
         if message.payloadType == ProtoOAApplicationAuthRes().payloadType:
             logger.info("cTrader - API Application authorized")
             if account_id is not None:
@@ -68,12 +82,34 @@ def pps_get_all_data():
         elif message.payloadType == ProtoOAReconcileRes().payloadType:
             positions = Protobuf.extract(message)
             parse_positions(positions)
-            reactor.callLater(3, callable=send_ProtoOATraderReq)
+            reactor.callLater(
+                3,
+                lambda: send_ProtoOADealListReq(
+                    start=startTimestamp, end=startTimestamp + step
+                ),
+            )
+        elif message.payloadType == ProtoOADealListRes().payloadType:
+            deals = Protobuf.extract(message)
+            agg_closed_deals(deals)
+            if startTimestamp <= endTimestamp:
+                reactor.callLater(
+                    3,
+                    lambda: send_ProtoOADealListReq(
+                        start=startTimestamp, end=startTimestamp + step
+                    ),
+                )
+                startTimestamp += step
+            else:
+                String(value=realized_pnl).save("pps-realized-pnl", overwrite=True)
+                String(value=closed_swap).save("pps-closed-swap", overwrite=True)
+                reactor.callLater(3, callable=send_ProtoOATraderReq)
         elif message.payloadType == ProtoOATraderRes().payloadType:
             trader_data = Protobuf.extract(message)
             get_account_balance(trader_data)
             clean_exit()
         else:
+            content = Protobuf.extract(message)
+            print(content)
             return
 
     def on_error(failure):
@@ -90,6 +126,14 @@ def pps_get_all_data():
     def send_ProtoOAReconcileReq(clientMsgId=None):
         request = ProtoOAReconcileReq()
         request.ctidTraderAccountId = account_id
+        deferred = client.send(request, clientMsgId=clientMsgId)
+        deferred.addErrback(on_error)
+
+    def send_ProtoOADealListReq(start, end, clientMsgId=None):
+        request = ProtoOADealListReq()
+        request.ctidTraderAccountId = account_id
+        request.fromTimestamp = start
+        request.toTimestamp = end
         deferred = client.send(request, clientMsgId=clientMsgId)
         deferred.addErrback(on_error)
 
@@ -111,6 +155,17 @@ def pps_get_all_data():
         logger.info(f"PPS Account Balance: {pps_account_balance}")
         String(value=pps_account_balance).save("pps-acct-balance", overwrite=True)
 
+    def agg_closed_deals(deals):
+        global realized_pnl
+        global closed_swap
+
+        for deal in deals.deal:
+            if str(deal.closePositionDetail) == "" or deal.symbolId != int(symbol_id):
+                continue
+            moneyDigits = deal.closePositionDetail.moneyDigits
+            closed_swap += deal.closePositionDetail.swap / 10**moneyDigits
+            realized_pnl += deal.closePositionDetail.grossProfit / 10**moneyDigits
+
     def parse_positions(positions):
         open_dot_size = 0
         open_swap = 0
@@ -118,11 +173,6 @@ def pps_get_all_data():
         open_margin = 0
         open_dot_avg_price = 0
 
-        closed_dot_size = 0
-        closed_swap = 0
-        closed_positions_size = 0
-        closed_margin = 0
-        closed_dot_avg_price = 0
         for position in positions.position:
             if (
                 position.tradeData.symbolId != int(symbol_id)
@@ -141,20 +191,6 @@ def pps_get_all_data():
                 open_swap += swap
                 open_positions_size += positionSize
                 open_margin += margin
-            elif (
-                position.positionStatus == ProtoOAPositionStatus.POSITION_STATUS_CLOSED
-            ):
-                moneyDigits = position.moneyDigits
-                volume = position.tradeData.volume / 10**moneyDigits
-                swap = position.swap / 10**moneyDigits
-                margin = position.usedMargin / 10**moneyDigits
-                price = position.price
-                positionSize = volume * price
-
-                closed_dot_size -= volume
-                closed_swap += swap
-                closed_positions_size += positionSize
-                closed_margin += margin
             else:
                 continue
 
@@ -162,22 +198,11 @@ def pps_get_all_data():
             open_dot_avg_price = open_positions_size / abs(open_dot_size)
         else:
             open_dot_avg_price = 0
-        if closed_dot_size != 0:
-            closed_dot_avg_price = closed_positions_size / abs(closed_dot_size)
-        else:
-            closed_dot_avg_price = 0
 
         String(value=open_margin).save("pps-open-margin", overwrite=True)
         String(value=open_dot_size).save("pps-open-dot-size", overwrite=True)
         String(value=open_dot_avg_price).save("pps-open-dot-avg-price", overwrite=True)
         String(value=open_swap).save("pps-open-swap", overwrite=True)
-
-        String(value=closed_margin).save("pps-closed-margin", overwrite=True)
-        String(value=closed_dot_size).save("pps-closed-dot-size", overwrite=True)
-        String(value=closed_dot_avg_price).save(
-            "pps-closed-dot-avg-price", overwrite=True
-        )
-        String(value=closed_swap).save("pps-closed-swap", overwrite=True)
 
     # Setting optional client callbacks
     client.setConnectedCallback(connected)

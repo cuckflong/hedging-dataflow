@@ -68,10 +68,8 @@ def create_raw_data_table():
             pps_open_dot_size DOUBLE PRECISION,
             pps_open_dot_avg_price DOUBLE PRECISION,
             pps_open_swap DOUBLE PRECISION,
-            pps_closed_margin DOUBLE PRECISION,
-            pps_closed_dot_size DOUBLE PRECISION,
-            pps_closed_dot_avg_price DOUBLE PRECISION,
-            pps_closed_swap DOUBLE PRECISION
+            pps_closed_swap DOUBLE PRECISION,
+            pps_realized_pnl DOUBLE PRECISION
         );
     """
     )
@@ -143,10 +141,8 @@ def write_raw_data_to_db(
     pps_open_dot_size: float,
     pps_open_dot_avg_price: float,
     pps_open_swap: float,
-    pps_closed_margin: float,
-    pps_closed_dot_size: float,
-    pps_closed_dot_avg_price: float,
     pps_closed_swap: float,
+    pps_realized_pnl: float,
 ):
     logger = get_run_logger()
 
@@ -181,11 +177,9 @@ def write_raw_data_to_db(
             pps_open_dot_size,
             pps_open_dot_avg_price,
             pps_open_swap,
-            pps_closed_margin,
-            pps_closed_dot_size,
-            pps_closed_dot_avg_price,
-            pps_closed_swap
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+            pps_closed_swap,
+            pps_realized_pnl
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
     """,
         (
             unix_time,
@@ -203,10 +197,8 @@ def write_raw_data_to_db(
             pps_open_dot_size,
             pps_open_dot_avg_price,
             pps_open_swap,
-            pps_closed_margin,
-            pps_closed_dot_size,
-            pps_closed_dot_avg_price,
             pps_closed_swap,
+            pps_realized_pnl,
         ),
     )
     conn.commit()
@@ -290,6 +282,37 @@ def write_derived_data_to_db(
     cur.close()
     conn.close()
     return
+
+
+@task
+def get_last_raw_value(col_name: str) -> float:
+    logger = get_run_logger()
+
+    logger.info(f"Getting last {col_name} value")
+
+    database = Secret.load("prefect-psql-database").get()
+    host = Secret.load("prefect-psql-host").get()
+    user = Secret.load("prefect-psql-user").get()
+    password = Secret.load("prefect-psql-password").get()
+    conn = psycopg2.connect(
+        host=host,
+        database=database,
+        user=user,
+        password=password,
+    )
+    cur = conn.cursor()
+    cur.execute(
+        f"SELECT {col_name} FROM hedge_data_raw ORDER BY unix_time DESC LIMIT 1;"
+    )
+    results = cur.fetchall()
+    if len(results) == 0:
+        return None
+    else:
+        raw_value = float(results[0][0])
+
+    cur.close()
+    conn.close()
+    return raw_value
 
 
 @task

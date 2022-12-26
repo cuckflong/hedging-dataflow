@@ -18,10 +18,8 @@ def collect_pps_raw_data_flow():
     pps_open_dot_avg_price = float(String.load("pps-open-dot-avg-price").value)
     pps_open_swap = float(String.load("pps-open-swap").value)
 
-    pps_closed_margin = float(String.load("pps-closed-margin").value)
-    pps_closed_dot_size = float(String.load("pps-closed-dot-size").value)
-    pps_closed_dot_avg_price = float(String.load("pps-closed-dot-avg-price").value)
     pps_closed_swap = float(String.load("pps-closed-swap").value)
+    pps_realized_pnl = float(String.load("pps-realized-pnl").value)
 
     return (
         pps_acct_balance,
@@ -29,10 +27,8 @@ def collect_pps_raw_data_flow():
         pps_open_dot_size,
         pps_open_dot_avg_price,
         pps_open_swap,
-        pps_closed_margin,
-        pps_closed_dot_size,
-        pps_closed_dot_avg_price,
         pps_closed_swap,
+        pps_realized_pnl,
     )
 
 
