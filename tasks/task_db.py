@@ -102,9 +102,7 @@ def create_derived_data_table():
             id SERIAL PRIMARY KEY,
             unix_time BIGINT NOT NULL,
             pps_open_pnl DOUBLE PRECISION,
-            pps_closed_pnl DOUBLE PRECISION,
             pps_open_liquid_value DOUBLE PRECISION,
-            pps_closed_liquid_value DOUBLE PRECISION,
             pps_total_swap DOUBLE PRECISION,
             dot_liquid_value DOUBLE PRECISION,
             total_liquid_value DOUBLE PRECISION,
@@ -211,9 +209,7 @@ def write_raw_data_to_db(
 def write_derived_data_to_db(
     unix_time: int,
     pps_open_pnl: float,
-    pps_closed_pnl: float,
     pps_open_liquid_value: float,
-    pps_closed_liquid_value: float,
     pps_total_swap: float,
     dot_liquid_value: float,
     total_liquid_value: float,
@@ -245,9 +241,7 @@ def write_derived_data_to_db(
         INSERT INTO hedge_data_derived (
             unix_time,
             pps_open_pnl,
-            pps_closed_pnl,
             pps_open_liquid_value,
-            pps_closed_liquid_value,
             pps_total_swap,
             dot_liquid_value,
             total_liquid_value,
@@ -258,14 +252,12 @@ def write_derived_data_to_db(
             dot_net_position,
             dot_fees,
             pnl
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
     """,
         (
             unix_time,
             pps_open_pnl,
-            pps_closed_pnl,
             pps_open_liquid_value,
-            pps_closed_liquid_value,
             pps_total_swap,
             dot_liquid_value,
             total_liquid_value,
