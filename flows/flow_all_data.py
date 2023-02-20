@@ -117,7 +117,10 @@ def collect_all_data_flow(dry_run: bool = False):
 
     staked_ratio = dot_staked_balance / (dot_total_balance + ftx_dot_balance) * 100
 
-    margin_ratio = ((pps_acct_balance + pps_open_pnl) / pps_open_margin) * 100
+    if pps_open_margin == 0:
+        margin_ratio = 1
+    else:
+        margin_ratio = ((pps_acct_balance + pps_open_pnl) / pps_open_margin) * 100
 
     dot_net_position = dot_total_balance + ftx_dot_balance + pps_open_dot_size
 
